@@ -1,0 +1,94 @@
+---
+title: "astronauts"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+library(tidyverse)
+library(janitor)
+library(hrbrthemes)
+library(extrafont)
+library(scales)
+library(ggdark)
+library(here)
+
+loadfonts(device = "win")
+```
+
+
+```{r}
+astronauts <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-14/astronauts.csv')
+```
+
+
+```{r}
+astro_clean <- astronauts %>% 
+  clean_names() %>% 
+  mutate(time_to_mission = year_of_mission - year_of_selection) %>% 
+  group_by(year_of_mission) %>% 
+  summarise(
+    hours_mission = mean(hours_mission, na.rm = TRUE),
+    eva_hrs_mission = mean(eva_hrs_mission, na.rm = TRUE)
+    ) %>% 
+  mutate(year_of_mission = as_factor(year_of_mission))
+```
+
+
+```{r}
+astro_clean %>% 
+  ggplot(aes(hours_mission, year_of_mission, label = year_of_mission)) +
+  geom_point(color = "#ffffff", size = 0.8) + 
+  geom_segment(aes(x = 0, xend = hours_mission, 
+                   y = year_of_mission, 
+                   yend = year_of_mission), 
+               color = "#ffffff", size = 0.8) + 
+  geom_segment(aes(x = 0, xend = hours_mission, 
+                   y = year_of_mission, 
+                   yend = year_of_mission), 
+               color = "#ffffff", size = 1.4, 
+               alpha = 0.3) +
+  geom_segment(aes(x = 0, xend = hours_mission, 
+                   y = year_of_mission, 
+                   yend = year_of_mission), 
+               color = "#ffffff", size = 1.6, 
+               alpha = 0.1) +
+  dark_theme_gray() + 
+  coord_polar() + 
+  labs(title = "Into The Space", 
+      subtitle = "Average mission hours of astronauts each year\nVisualized by Farhan Reynaldo | Data by Mariya Stavnqichuk and Tatsuya Corlett") +
+  scale_x_continuous(breaks = seq(1000, 5000, 1000), 
+                     labels = comma,
+                     expand = expansion(mult = c(0, .08))) +
+  scale_y_discrete(expand = expansion(mult = c(0, .05))) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(
+          size = 24, family = "Roboto Light"
+          ),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_blank(), 
+        legend.position = "none", 
+        plot.title = element_text(
+          hjust = 0.5,
+          face = "bold",
+          size = 120, 
+          family = "Onyx", 
+          color = "#ffffff"),
+        plot.subtitle = element_text(
+          hjust = 0.5,
+          size = 24,
+          face = "italic",
+          family = "Roboto Light", 
+          color = "#ffffff"), 
+        plot.margin = unit(c(6, 4, 4, 4), "cm")
+        )
+
+ggsave(here::here("2020-week29", "plots", "temp", paste0("astronauts-", format(Sys.time(), "%Y%m%d_%H%M%S"), ".png")), type = "cairo", height = 700, width = 700, units = "mm")
+```
