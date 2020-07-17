@@ -16,16 +16,14 @@ library(scales)
 library(ggdark)
 library(here)
 
-loadfonts(device = "win")
+loadfonts(device = "win", quiet = TRUE)
 ```
 
-
-```{r}
+```{r data}
 astronauts <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-14/astronauts.csv')
 ```
 
-
-```{r}
+```{r prep}
 astro_clean <- astronauts %>% 
   clean_names() %>% 
   mutate(time_to_mission = year_of_mission - year_of_selection) %>% 
@@ -37,8 +35,7 @@ astro_clean <- astronauts %>%
   mutate(year_of_mission = as_factor(year_of_mission))
 ```
 
-
-```{r}
+```{r plot, fig.width = 7, fig.height = 7}
 astro_clean %>% 
   ggplot(aes(hours_mission, year_of_mission, label = year_of_mission)) +
   geom_point(color = "#ffffff", size = 0.8) + 
