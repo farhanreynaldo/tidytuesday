@@ -1,0 +1,189 @@
+---
+title: "coffee-ratings"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+library(tidyverse)
+library(ggridges)
+library(janitor)
+library(hrbrthemes)
+library(extrafont)
+library(here)
+library(scales)
+library(skimr)
+library(ggchicklet)
+
+loadfonts(device = "win", quiet = TRUE)
+```
+```{r data}
+coffee_ratings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-07/coffee_ratings.csv')
+```
+
+```{r prep}
+coffee_drip <- coffee_ratings %>% 
+  drop_na(country_of_origin) %>% 
+  # filter(country_of_origin %in% c("Indonesia", "Brazil")) %>% 
+  select(country_of_origin, aroma:sweetness, -clean_cup) %>% 
+  group_by(country_of_origin) %>% 
+  summarise(across(everything(), mean)) %>% 
+  mutate(across(where(is.numeric), scale)) %>% 
+  pivot_longer(-country_of_origin, names_to = "name", values_to = "score") %>% 
+  mutate(
+    country_of_origin = case_when(
+      str_detect(country_of_origin, "Hawaii") ~ "Hawaii",
+      str_detect(country_of_origin, "Puerto") ~ "Puerto Rico",
+      str_detect(country_of_origin, "Tanzania") ~ "Tanzania",
+      str_detect(country_of_origin, "Cote") ~ "Côte d'Ivoire",
+      TRUE ~ country_of_origin),
+    status = if_else(score <= 0, "low", "high"), 
+    name = as_factor(name)
+    )
+```
+
+```{r plot-thin}
+colors <- c("high" = "#6F4E37", "low" = "#365D2E")
+
+coffee_drip %>% 
+  ggplot(aes(name, score, color = status, 
+             group = country_of_origin)) + 
+  geom_point(size = 5) +
+  geom_segment(aes(x = name, xend = name,
+                   yend = 0, y = score),
+               size = 3) + 
+  facet_wrap(~country_of_origin) +
+  scale_color_manual(values = colors) + 
+  scale_y_reverse() + 
+  scale_x_discrete(expand = c(0.8, 0)) +
+  theme_minimal(base_family = "Roboto Light") + 
+  labs(title = "Coffee Drip Profile", 
+       subtitle = "The score measures how many standard deviations above or below \nthe mean across data (0 means close to average)", 
+       caption = expression(atop("From left to right: aroma, flavour, aftertaste, acidity, body, balance, uniformity, sweetness", atop(scriptstyle("Visualization by Farhan Reynaldo"))))) + 
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_text(
+          size = 22, 
+          family = "Roboto Slab", 
+          face = "bold"
+          ),
+        axis.title.x = element_blank(),
+        strip.text = element_text(
+          size = 26, 
+          family = "Roboto Slab", 
+          face = "bold"
+          ),
+        axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "none", 
+        plot.title = element_text(
+          family = "Roboto Black",
+          hjust = 0.5,
+          face = "bold",
+          size = 72), 
+        plot.subtitle = element_text(
+          family = "Roboto Light",
+          hjust = 0.5,
+          size = 30, 
+          margin = margin(1, 0, 3, 0, unit = "cm")
+          ), 
+        plot.caption = element_text(
+          family = "Roboto Light",
+          hjust = 0.5,
+          size = 30, 
+          margin = margin(3, 0, 1, 0, unit = "cm")
+          ), 
+        plot.margin = margin(4, 3, 2, 4, unit = "cm"))
+
+  ggsave(here::here("2020-week28", "plots", "temp", paste0("coffee-", format(Sys.time(), "%Y%m%d_%H%M%S"), ".png")), type = "cairo", height = 600, width = 600, units = "mm")
+```
+
+```{r plot-thick}
+colors <- c("high" = "#6F4E37", "low" = "#365D2E")
+
+coffee_drip %>% 
+  ggplot(aes(name, score, color = status, fill = status, 
+             group = country_of_origin)) + 
+  geom_point(data = subset(coffee_drip, abs(score) > 0.9), size = 15.4) +
+  geom_segment(aes(x = name, xend = name,
+                   yend = 0, y = score),
+               size = 16) +
+  facet_wrap(~country_of_origin) +
+  scale_color_manual(values = colors) + 
+  scale_y_reverse() + 
+  theme_minimal(base_family = "Roboto Light") + 
+  labs(title = "Coffee Drip Profile", 
+       subtitle = "The score measures how many standard deviations above or below \nthe mean across data (0 means close to average)", 
+       caption = expression(
+         atop("From left to right: aroma, flavour, aftertaste, acidity, body, balance, uniformity, sweetness", 
+              atop(scriptstyle("Visualization by Farhan Reynaldo"))))) + 
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_text(
+          size = 22, 
+          family = "Roboto Slab", 
+          face = "bold"
+          ),
+        axis.title.x = element_blank(),
+        strip.text = element_text(
+          size = 26, 
+          family = "Roboto Slab", 
+          face = "bold"
+          ),
+        axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "none", 
+        plot.title = element_text(
+          family = "Roboto Black",
+          hjust = 0.5,
+          face = "bold",
+          size = 72), 
+        plot.subtitle = element_text(
+          family = "Roboto Light",
+          hjust = 0.5,
+          size = 30, 
+          margin = margin(1, 0, 3, 0, unit = "cm")
+          ), 
+        plot.caption = element_text(
+          family = "Roboto Light",
+          hjust = 0.5,
+          size = 30, 
+          margin = margin(3, 0, 1, 0, unit = "cm")
+          ), 
+        plot.margin = margin(4, 3, 2, 4, unit = "cm"))
+
+  ggsave(here::here("2020-week28", "plots", "temp", paste0("coffee-", format(Sys.time(), "%Y%m%d_%H%M%S"), ".png")), type = "cairo", height = 600, width = 600, units = "mm")
+```
+
+```{r}
+# coord_radar <- function (theta = "x", start = 0, direction = 1) {
+#   theta <- match.arg(theta, c("x", "y"))
+#   r <- if (theta == "x") "y" else "x"
+#   ggproto("CoordRadar", CoordPolar, theta = theta, r = r, start = start, 
+#           direction = sign(direction),
+#           is_linear = function(coord) TRUE)
+# }
+# 
+# coffee_ratings %>% 
+#   drop_na(country_of_origin) %>% 
+#   select(country_of_origin, aroma:sweetness, -clean_cup, -uniformity, -sweetness) %>% 
+#   group_by(country_of_origin) %>% 
+#   summarise(across(everything(), mean)) %>% 
+#   pivot_longer(-country_of_origin, names_to = "params") %>%
+#   mutate(params = factor(params)) %>% 
+#   arrange(params) %>% 
+#   ggplot(aes(params, value)) + 
+#   coord_radar() +
+#   geom_point(color = "#99d5cf", size = 1.3, alpha = .8) +
+#   geom_polygon(fill = "#009688", group = 1, 
+#                color = "#4cb5ab", alpha = .70) + 
+#   facet_wrap(~country_of_origin) + 
+#   theme_ipsum_rc() + 
+#   scale_y_continuous(limits = c(0, 10))
+# 
+# ggsave(here::here("2020-week28", "plots", "temp", paste0("coffee-", format(Sys.time(), "%Y%m%d_%H%M%S"), ".png")), type = "cairo", height = 500, width = 500, units = "mm")
+```
+
